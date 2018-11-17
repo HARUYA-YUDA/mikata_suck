@@ -1,3 +1,4 @@
+#!/usr/vin/env python
 import rospy
 import moveit_msgs.msg
 from math import pi
