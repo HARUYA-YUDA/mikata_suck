@@ -50,7 +50,7 @@ class mikata_suck(object):
         #Instantiate a 'PlanningSceneInterface'_ object.
         scene = moveit_commander.PlanningSceneInterface()
 
-        group_name = "panda_arm"
+        group_name = "mikata_arm"
         move_group = moveit_commander.MoveGroupCommander(group_name)
 
         display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
@@ -83,6 +83,20 @@ class mikata_suck(object):
         self.eef_link = eef_link
         self.group_names = group_names
 
+    def go_to_joint_state(self):
+        #Subscrive the motor angles from motor angles' data
+        move_group = self.move_group
+
+        joint_goal = move_group.get_current_joint_values()
+        joint_goal[0] = 0
+        joint_goal[1] = 0
+        joint_goal[2] = 0
+        joint_goal[3] = 0
+
+        move_group.go(joint_goal, wait=True)
+        
+        move_group.stop()
+
     def go_to_pose_goal(self,data):
         #Subscribe the pose goal
         #Calculate the inverse kinematic
@@ -90,7 +104,7 @@ class mikata_suck(object):
         move_group = self.move_group
         #goal positions
         pose_goal = geometry_msgs.msg.Pose()
-        pose_goal.orientation.w = 1.0
+        pose_goal.orientation.w = 0.2 
         pose_goal.position.x = data.x
         pose_goal.position.y = data.y
         pose_goal.position.z = data.z
@@ -171,5 +185,6 @@ class mikata_suck(object):
 
 if __name__ == '__main__':
     ik = mikata_suck()
+    ik.go_to_joint_state()
     rospy.spin()
 
