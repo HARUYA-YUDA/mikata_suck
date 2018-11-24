@@ -4,8 +4,9 @@ import moveit_msgs.msg
 from math import pi
 from mikata_arm_msgs.msg import dxl_double
 
-class move_arm():
+class moveit_mikata_bridge():
     def __init__(self):
+        rospy.init_node('moveit_mikata_bridge')
         #motor's actual angles 
         self._actual_pose = [0, 0, 0, 0]
         #motor's goal angles 
@@ -17,13 +18,13 @@ class move_arm():
         self. error = self.motor_angle_threshold
 
         #It's for reading topic of actual robotic arm pose
-        rospy.Subscriber("dxl/joint_state", dxl_double, actual_arm_cb)
+        rospy.Subscriber("dxl/joint_state", dxl_double, self.actual_arm_cb)
 
         #It's for reading topic of IK solution
-        rospy.Subscriber("move_group/display_planned_path", moveit_msgs.msg.DisplayTrajectory, move_arm_cb)
+        rospy.Subscriber("move_group/display_planned_path", moveit_msgs.msg.DisplayTrajectory, self.move_arm_cb)
 
         #It's for sending topic to mikata_bringup
-        dxl_goal_publisher = rospy.Publisher('dxl/goal_position', dxl_double, que_size = 100)
+        dxl_goal_publisher = rospy.Publisher('dxl/goal_position', dxl_double, queue_size = 100)
         self.dxl_goal_publisher = dxl_goal_publisher
 
     def actual_arm_cb(self, data):
@@ -45,4 +46,5 @@ class move_arm():
 
 
 if __name__ == '__main__':
-    pass
+    moveit_mikata_bridge = moveit_mikata_bridge()
+    rospy.spin()
