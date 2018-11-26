@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#[inport]
+#[import]
 #----------------------------------------------------
 import sys
 import copy
@@ -11,6 +11,10 @@ import geometry_msgs.msg
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
+import time
+import tf
+from geometry_msgs.msg import Quaternion
+import math
 #----------------------------------------------------
 
 def all_close(goal, actual, tolerance):
@@ -82,6 +86,21 @@ class mikata_suck(object):
         self.planning_frame = planning_frame
         self.eef_link = eef_link
         self.group_names = group_names
+        self.bench_count = 0
+        self.bench_sum = 0 
+
+    def decorator(func):
+        def benchmark(self, *args, **kwargs):
+            """ time print """
+            start   = time.time()
+            func(self, *args, **kwargs)
+            elapsed = time.time() - start
+            self.bench_count += 1
+            self.bench_sum   += elapsed
+            #print ("benchmark  :{0}".format(elapsed) + "[sec]")
+            print ("benchmark  :{0}".format(self.bench_sum/self.bench_count) + "[sec]")
+
+        return benchmark
 
     def go_to_joint_state(self):
         #Subscrive the motor angles from motor angles' data
@@ -97,6 +116,7 @@ class mikata_suck(object):
         
         move_group.stop()
 
+    @decorator
     def go_to_pose_goal(self,data):
         #Subscribe the pose goal
         #Calculate the inverse kinematic
@@ -104,10 +124,11 @@ class mikata_suck(object):
         move_group = self.move_group
         #goal positions
         pose_goal = geometry_msgs.msg.Pose()
-        pose_goal.orientation.w = 0.2 
         pose_goal.position.x = data.x
         pose_goal.position.y = data.y
         pose_goal.position.z = data.z
+        quaternion = tf.transformations.quaternion_from_euler(0.0, 0.0, math.atan2(data.y, data.x))
+        pose_goal.orientation.w = quaternion[3] 
         move_group.set_pose_target(pose_goal)
 
         print ""
@@ -117,7 +138,9 @@ class mikata_suck(object):
         print ""
         
         #calculate inverse kinematic
-        plan = move_group.go(wait=True)
+        for i in range(0,10):
+            plan = move_group.go(wait=True)
+            print ("try  :"+str(i+1) + "[times]")
         #calling 'stop()' ensures that there is no residual movement
         move_group.stop()
         move_group.clear_pose_targets()
@@ -173,15 +196,18 @@ class mikata_suck(object):
         #Subscribe goal position topic named /pose_goal specified in geometry_msgs/Point.msg
         #Calculate Inverse Kinematic using mikata_arm model
         #Publish solution topic named /Display_planned_path
+        #start   = time.time()# keisoku
         self.go_to_pose_goal(data)
+        #elapsed = time.time() - start# keisoku
         cartesian_plan, fraction = self.plan_cartesian_path()
         self.display_trajectory(cartesian_plan)
 
         print ""
         print "---------------------------------------"
-        print " published topic /display_planned_path "
+        print "         finished to calculate         "
         print "---------------------------------------"
         print ""
+
 
 if __name__ == '__main__':
     ik = mikata_suck()
